@@ -3,6 +3,9 @@ package com.guilherme.controlefinanceiro.service;
 import com.guilherme.controlefinanceiro.repository.TransacaoRepository;
 import org.springframework.stereotype.Service;
 import com.guilherme.controlefinanceiro.model.Transacao;
+
+import java.util.List;
+
 @Service
 public class TransacaoService {
 
@@ -16,4 +19,7 @@ public class TransacaoService {
         return repository.save(transacao);
     }
 
+    public List<Transacao> listar() {
+        return repository.findAll();
+    }
 }
