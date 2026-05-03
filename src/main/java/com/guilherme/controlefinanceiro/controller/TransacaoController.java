@@ -27,4 +27,9 @@ public class TransacaoController {
     public List<Transacao> listar() {
         return service.listar();
     }
+
+    @GetMapping("/transacoes/saldo")
+    public double saldo(){
+        return service.calcularSaldo();
+    }
 }

@@ -22,4 +22,19 @@ public class TransacaoService {
     public List<Transacao> listar() {
         return repository.findAll();
     }
+
+    public Double calcularSaldo(){
+
+        List<Transacao> transacoes = repository.findAll();
+        double saldo = 0;
+
+        for (Transacao t : transacoes){
+            if (t.getTipo().equals("ENTRADA")){
+                saldo += t.getValor();
+            } else if (t.getTipo().equals("SAIDA")){
+                saldo -= t.getValor();
+            }
+        }
+        return saldo;
+    }
 }

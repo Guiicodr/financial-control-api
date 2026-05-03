@@ -27,6 +27,7 @@ public class Transacao {
     // Data de entradas, prazos de objetivo
     private LocalDate data;
 
+
     // Getters e Setters
     public String getDescricao() {
         return descricao;
