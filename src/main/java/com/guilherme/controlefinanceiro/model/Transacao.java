@@ -1,9 +1,7 @@
 package com.guilherme.controlefinanceiro.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
+import com.guilherme.controlefinanceiro.model.Categoria;
 
 import java.time.LocalDate;
 // Modelo dos dados financeiros enviados
@@ -68,4 +66,7 @@ public class Transacao {
     public void setId(Long id) {
         this.id = id;
     }
+
+    @Enumerated(EnumType.STRING)
+    private Categoria categoria;
 }
