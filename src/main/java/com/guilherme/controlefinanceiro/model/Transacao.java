@@ -1,7 +1,7 @@
 package com.guilherme.controlefinanceiro.model;
 
 import jakarta.persistence.*;
-import com.guilherme.controlefinanceiro.model.Categoria;
+
 
 import java.time.LocalDate;
 // Modelo dos dados financeiros enviados
@@ -25,6 +25,8 @@ public class Transacao {
     // Data de entradas, prazos de objetivo
     private LocalDate data;
 
+    @Enumerated(EnumType.STRING)
+    private Categoria categoria;
 
     // Getters e Setters
     public String getDescricao() {
@@ -67,6 +69,13 @@ public class Transacao {
         this.id = id;
     }
 
-    @Enumerated(EnumType.STRING)
-    private Categoria categoria;
+    public Categoria getCategoria(){
+        return categoria;
+    }
+
+    public void setCategoria(Categoria categoria){
+        this.categoria = categoria;
+    }
+
+
 }
