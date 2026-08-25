@@ -6,6 +6,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
+import jakarta.persistence.ManyToOne;
 
 import java.time.LocalDate;
 
@@ -26,6 +27,9 @@ public class Objetivo {
 
     @Enumerated(EnumType.STRING)
     private TipoObjetivo tipo;
+
+    @ManyToOne(optional = false)
+    private Usuario usuario;
 
     // Getters e Setters
     public String getNome() {
@@ -74,5 +78,13 @@ public class Objetivo {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Usuario getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
     }
 }

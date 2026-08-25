@@ -18,12 +18,12 @@ public class TransacaoController {
 
     private final TransacaoService service;
 
-    public TransacaoController(TransacaoService service){
+    public TransacaoController(TransacaoService service) {
         this.service = service;
     }
 
     @PostMapping("/transacoes")
-    public Transacao salvar(@RequestBody Transacao transacao){
+    public Transacao salvar(@RequestBody Transacao transacao) {
         return service.salvar(transacao);
     }
 
@@ -33,12 +33,17 @@ public class TransacaoController {
     }
 
     @GetMapping("/transacoes/saldo")
-    public double saldo(){
+    public double saldo() {
         return service.calcularSaldo();
     }
 
+    @GetMapping("/transacoes/monthly")
+    public List<java.util.Map<String, Object>> gastosMensais() {
+        return service.gastosMensais();
+    }
+
     @DeleteMapping("transacoes/{id}")
-    public void deletar(@PathVariable Long id){
+    public void deletar(@PathVariable Long id) {
         service.deletar(id);
     }
 
