@@ -1,23 +1,17 @@
-# 1. Usa a imagem oficial do JDK 25 e instala o Maven
-FROM eclipse-temurin:25-jdk AS build
+# Estágio de Build usando Maven oficial com Java 21
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
 
-# Instala o Maven no sistema
-RUN apt-get update && apt-get install -y maven && rm -rf /var/lib/apt/lists/*
-
-# 2. Copia todo o projeto
+# Copia os arquivos do projeto
 COPY . .
 
-# 3. Dá permissão de execução ao Maven Wrapper
-RUN chmod +x ./mvnw
+# Compila o projeto direto com o Maven da imagem (evita problemas com o script ./mvnw)
+RUN mvn clean package -DskipTests
 
-# 4. Compila o projeto com Java 25 sem rodar testes
-ENV MAVEN_OPTS="-Xmx512m"
-RUN ./mvnw clean package -DskipTests -Dmaven.test.skip=true
-
-# 5. Estágio final de execução com o Java 25 JRE
-FROM eclipse-temurin:25-jre
+# Estágio de Execução (imagem minimalista)
+FROM eclipse-temurin:21-jre
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
+
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
