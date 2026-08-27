@@ -8,6 +8,7 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -18,6 +19,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 public class SecurityConfig {
+
     @Bean
     PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -37,12 +39,21 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtFilter) throws Exception {
-        return http.csrf(AbstractHttpConfigurer::disable)
+        return http
+                .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
-                .authorizeHttpRequests(
-                        auth -> auth.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                                .requestMatchers("/auth/**", "/h2-console/**").permitAll()
-                                .anyRequest().authenticated())
+                // Essencial para APIs baseadas em Token (JWT): desativa criação de sessão HTTP
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        // Libera requisições OPTIONS (Preflight do navegador)
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // Libera rotas públicas de autenticação e H2 console
+                        .requestMatchers("/auth/**", "/h2-console/**").permitAll()
+                        // Qualquer outra rota exige autenticação via JWT
+                        .anyRequest().authenticated())
+                // Necessário caso utilize o console H2 em algum momento
+                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
+                // Insere o filtro JWT antes do filtro de autenticação padrão do Spring
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
