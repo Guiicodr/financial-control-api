@@ -14,12 +14,15 @@ import java.util.List;
 public class ProjecaoService {
     private final TransacaoRepository transacoes;
     private final IncomeRepository rendas;
+    private final IncomeService incomeService;
     private final UsuarioAtualService usuarioAtual;
 
-    public ProjecaoService(TransacaoRepository transacoes, IncomeRepository rendas, UsuarioAtualService usuarioAtual) {
+    public ProjecaoService(TransacaoRepository transacoes, IncomeRepository rendas, UsuarioAtualService usuarioAtual,
+            IncomeService incomeService) {
         this.transacoes = transacoes;
         this.rendas = rendas;
         this.usuarioAtual = usuarioAtual;
+        this.incomeService = incomeService;
     }
 
     public List<ProjecaoMensalDTO> projetar(int meses) {
@@ -32,8 +35,7 @@ public class ProjecaoService {
         double saldo = 0;
         for (int indice = 0; indice < meses; indice++) {
             YearMonth mes = YearMonth.now().plusMonths(indice);
-            double entrada = receitas.stream().filter(item -> item.getValor() != null).mapToDouble(Income::getValor)
-                    .sum();
+            double entrada = receitas.stream().mapToDouble(item -> incomeService.valorNoMes(item, mes)).sum();
             double saida = despesas.stream()
                     .filter(item -> item.getTipo() != null && item.getTipo().equals("SAIDA") && ativoNoMes(item, mes))
                     .mapToDouble(this::valorMensal).sum();

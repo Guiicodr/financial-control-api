@@ -16,8 +16,8 @@ public class AuthController {
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     public UsuarioResponse registrar(@RequestBody AuthRequest request) {
-        var usuario = service.registrar(request.email(), request.senha());
-        return new UsuarioResponse(usuario.getId(), usuario.getEmail());
+        var usuario = service.registrar(request.name(), request.email(), request.senha());
+        return new UsuarioResponse(usuario.getId(), usuario.getName(), usuario.getEmail());
     }
 
     @PostMapping("/login")
@@ -30,12 +30,12 @@ public class AuthController {
         return service.renovar(request.refreshToken());
     }
 
-    public record AuthRequest(String email, String senha) {
+    public record AuthRequest(String name, String email, String senha) {
     }
 
     public record RefreshRequest(String refreshToken) {
     }
 
-    public record UsuarioResponse(Long id, String email) {
+    public record UsuarioResponse(Long id, String name, String email) {
     }
 }

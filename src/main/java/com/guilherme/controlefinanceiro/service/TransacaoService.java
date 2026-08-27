@@ -9,16 +9,19 @@ import java.util.Map;
 import java.util.ArrayList;
 import java.time.YearMonth;
 import com.guilherme.controlefinanceiro.model.Usuario;
+import com.guilherme.controlefinanceiro.service.IncomeService;
 
 @Service
 public class TransacaoService {
 
     private final TransacaoRepository repository;
     private final UsuarioAtualService usuarioAtual;
+    private final IncomeService incomes;
 
-    public TransacaoService(TransacaoRepository repository, UsuarioAtualService usuarioAtual) {
+    public TransacaoService(TransacaoRepository repository, UsuarioAtualService usuarioAtual, IncomeService incomes) {
         this.repository = repository;
         this.usuarioAtual = usuarioAtual;
+        this.incomes = incomes;
     }
 
     public Transacao salvar(Transacao transacao) {
@@ -32,17 +35,11 @@ public class TransacaoService {
 
     public Double calcularSaldo() {
 
-        List<Transacao> transacoes = repository.findAllByUsuario(usuarioAtual.obter());
-        double saldo = 0;
-
-        for (Transacao t : transacoes) {
-            if (t.getTipo().equals("ENTRADA")) {
-                saldo += t.getValor();
-            } else if (t.getTipo().equals("SAIDA")) {
-                saldo -= t.getValor();
-            }
-        }
-        return saldo;
+        double rendas = incomes.totalAcumuladoAte(YearMonth.now());
+        double despesas = repository.findAllByUsuario(usuarioAtual.obter()).stream()
+                .filter(t -> "SAIDA".equals(t.getTipo()) && t.getValor() != null)
+                .mapToDouble(Transacao::getValor).sum();
+        return rendas - despesas;
     }
 
     public void deletar(Long id) {
@@ -53,8 +50,8 @@ public class TransacaoService {
     public List<Map<String, Object>> gastosMensais() {
         List<Map<String, Object>> resultado = new ArrayList<>();
         List<Transacao> transacoes = repository.findAllByUsuario(usuarioAtual.obter());
-        for (int indice = 11; indice >= 0; indice--) {
-            YearMonth mes = YearMonth.now().minusMonths(indice);
+        YearMonth atual = YearMonth.now();
+        for (YearMonth mes = atual.withMonth(1); !mes.isAfter(atual); mes = mes.plusMonths(1)) {
             Map<String, Object> linha = new java.util.LinkedHashMap<>();
             linha.put("month", mes.toString());
             linha.put("food", total(transacoes, mes, "ALIMENTACAO"));

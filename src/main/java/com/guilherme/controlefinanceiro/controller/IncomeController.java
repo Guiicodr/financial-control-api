@@ -24,6 +24,16 @@ public class IncomeController {
         return service.salvar(income);
     }
 
+    @PutMapping("/base")
+    public Income salvarRendaBase(@RequestBody Income income) {
+        return service.salvarRendaBase(income);
+    }
+
+    @PostMapping("/extras")
+    public Income salvarRendaExtra(@RequestBody Income income) {
+        return service.salvarRendaExtra(income);
+    }
+
     @DeleteMapping("/{id}")
     public void deletar(@PathVariable Long id) {
         service.deletar(id);

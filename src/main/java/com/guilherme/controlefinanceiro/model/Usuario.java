@@ -17,13 +17,19 @@ public class Usuario {
     @Column(nullable = false, unique = true)
     private String email;
 
+    // Mantido nullable na migração automática para não impedir o deploy em bancos
+    // que já possuem usuários. Novos cadastros são validados pelo AuthService.
+    @Column
+    private String name;
+
     @Column(nullable = false)
     private String senha;
 
     public Usuario() {
     }
 
-    public Usuario(String email, String senha) {
+    public Usuario(String name, String email, String senha) {
+        this.name = name;
         this.email = email;
         this.senha = senha;
     }
@@ -34,6 +40,14 @@ public class Usuario {
 
     public String getEmail() {
         return email;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public void setEmail(String email) {

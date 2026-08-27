@@ -5,6 +5,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import java.time.LocalDate;
 
 @Entity
@@ -19,6 +21,9 @@ public class Income {
     private Double valor;
 
     private LocalDate data;
+
+    @Enumerated(EnumType.STRING)
+    private TipoRenda tipo = TipoRenda.EXTRA;
 
     @ManyToOne(optional = false)
     private Usuario usuario;
@@ -62,6 +67,14 @@ public class Income {
 
     public void setData(LocalDate data) {
         this.data = data;
+    }
+
+    public TipoRenda getTipo() {
+        return tipo;
+    }
+
+    public void setTipo(TipoRenda tipo) {
+        this.tipo = tipo;
     }
 
     public Usuario getUsuario() {

@@ -28,10 +28,12 @@ public class AuthService {
         this.jwtService = jwtService;
     }
 
-    public Usuario registrar(String email, String senha) {
+    public Usuario registrar(String name, String email, String senha) {
+        if (name == null || name.isBlank())
+            throw new IllegalArgumentException("Nome é obrigatório");
         if (usuarios.findByEmail(email).isPresent())
             throw new IllegalArgumentException("E-mail já cadastrado");
-        return usuarios.save(new Usuario(email.toLowerCase().trim(), encoder.encode(senha)));
+        return usuarios.save(new Usuario(name.trim(), email.toLowerCase().trim(), encoder.encode(senha)));
     }
 
     public Resultado autenticar(String email, String senha) {
@@ -54,9 +56,9 @@ public class AuthService {
         refresh.setUsuario(usuario);
         refresh.setExpiracao(Instant.now().plusSeconds(60L * 60 * 24 * 30));
         refreshTokens.save(refresh);
-        return new Resultado(jwtService.gerar(usuario), refresh.getToken());
+        return new Resultado(jwtService.gerar(usuario), refresh.getToken(), usuario.getName());
     }
 
-    public record Resultado(String accessToken, String refreshToken) {
+    public record Resultado(String accessToken, String refreshToken, String name) {
     }
 }
