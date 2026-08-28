@@ -3,6 +3,7 @@ package com.guilherme.controlefinanceiro.controller;
 import com.guilherme.controlefinanceiro.service.AuthService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
@@ -15,29 +16,31 @@ public class AuthController {
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    public UsuarioResponse registrar(@RequestBody AuthRequest request) {
-        System.out.println(">>> RECEBEU REQUISIÇÃO DE CADASTRO PARA: " + request.email());
-        var usuario = service.registrar(request.name(), request.email(), request.senha());
-        return new UsuarioResponse(usuario.getId(), usuario.getName(), usuario.getEmail());
+    public Object registrar(@RequestBody Map<String, Object> body) {
+        System.out.println(">>> PAYLOAD DE CADASTRO RECEBIDO: " + body);
+        String name = (String) body.get("name");
+        String email = (String) body.get("email");
+        String senha = (String) body.get("senha");
+        if (senha == null)
+            senha = (String) body.get("password"); // Fallback caso o front mande 'password'
+
+        var usuario = service.registrar(name, email, senha);
+        return Map.of("id", usuario.getId(), "name", usuario.getName(), "email", usuario.getEmail());
     }
 
     @PostMapping("/login")
-    public AuthService.Resultado login(@RequestBody AuthRequest request) {
-        System.out.println(">>> RECEBEU REQUISIÇÃO DE LOGIN PARA: " + request.email());
-        return service.autenticar(request.email(), request.senha());
+    public Object login(@RequestBody Map<String, Object> body) {
+        System.out.println(">>> PAYLOAD DE LOGIN RECEBIDO: " + body);
+        String email = (String) body.get("email");
+        String senha = (String) body.get("senha");
+        if (senha == null)
+            senha = (String) body.get("password"); // Fallback caso o front mande 'password'
+
+        return service.autenticar(email, senha);
     }
 
     @PostMapping("/refresh")
-    public AuthService.Resultado refresh(@RequestBody RefreshRequest request) {
-        return service.renovar(request.refreshToken());
-    }
-
-    public record AuthRequest(String name, String email, String senha) {
-    }
-
-    public record RefreshRequest(String refreshToken) {
-    }
-
-    public record UsuarioResponse(Long id, String name, String email) {
+    public AuthService.Resultado refresh(@RequestBody Map<String, String> body) {
+        return service.renovar(body.get("refreshToken"));
     }
 }
