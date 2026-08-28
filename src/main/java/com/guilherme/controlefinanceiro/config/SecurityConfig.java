@@ -1,6 +1,7 @@
 package com.guilherme.controlefinanceiro.config;
 
 import com.guilherme.controlefinanceiro.repository.UsuarioRepository;
+import com.guilherme.controlefinanceiro.service.JwtService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
@@ -75,7 +76,8 @@ public class SecurityConfig {
      */
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http,
-            JwtAuthenticationFilter jwtFilter,
+            JwtService jwtService,
+            UserDetailsService userDetailsService,
             CorsConfigurationSource corsConfigurationSource) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -94,7 +96,10 @@ public class SecurityConfig {
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(naoAutenticadoEntryPoint()))
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                // Filtro instanciado aqui (não é bean): evita o registro duplo
+                // servlet container + security chain que descartava a autenticação.
+                .addFilterBefore(new JwtAuthenticationFilter(jwtService, userDetailsService),
+                        UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 }
