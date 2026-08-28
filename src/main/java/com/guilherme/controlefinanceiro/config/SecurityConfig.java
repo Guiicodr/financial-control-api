@@ -42,18 +42,13 @@ public class SecurityConfig {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
-                // Essencial para APIs baseadas em Token (JWT): desativa criação de sessão HTTP
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Libera requisições OPTIONS (Preflight do navegador)
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // Libera rotas públicas de autenticação e H2 console
+                        .requestMatchers(HttpMethod.POST, "/auth/**").permitAll()
                         .requestMatchers("/auth/**", "/h2-console/**").permitAll()
-                        // Qualquer outra rota exige autenticação via JWT
                         .anyRequest().authenticated())
-                // Necessário caso utilize o console H2 em algum momento
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
-                // Insere o filtro JWT antes do filtro de autenticação padrão do Spring
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
