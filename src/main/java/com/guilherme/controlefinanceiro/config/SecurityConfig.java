@@ -92,6 +92,10 @@ public class SecurityConfig {
                         // Webhook do WhatsApp: autenticado pelo token do provedor,
                         // não por JWT (o remetente é o WhatsApp/Twilio/Meta).
                         .requestMatchers("/webhooks/**").permitAll()
+                        // CRÍTICO: o Boot despacha erros (404/405/500) para /error e
+                        // esse dispatch passa pela cadeia de segurança. Sem este
+                        // permitAll, TODO erro não tratado virava 401 "Não autenticado".
+                        .requestMatchers("/error").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(naoAutenticadoEntryPoint()))

@@ -2,7 +2,6 @@ package com.guilherme.controlefinanceiro.controller;
 
 import com.guilherme.controlefinanceiro.service.AuthService;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -43,14 +42,5 @@ public class AuthController {
     @PostMapping("/refresh")
     public AuthService.Resultado refresh(@RequestBody Map<String, String> body) {
         return service.renovar(body.get("refreshToken"));
-    }
-
-    /**
-     * Converte erros de validação/credenciais em HTTP 400 com corpo JSON,
-     * em vez de deixar estourar 500 no servidor.
-     */
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, String>> tratarRegraInvalida(IllegalArgumentException ex) {
-        return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
     }
 }

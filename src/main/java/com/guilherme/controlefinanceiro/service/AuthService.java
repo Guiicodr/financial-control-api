@@ -11,6 +11,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -46,6 +47,7 @@ public class AuthService {
         return usuarios.save(new Usuario(name.trim(), email.toLowerCase().trim(), encoder.encode(senha)));
     }
 
+    @Transactional
     public Resultado autenticar(String email, String senha) {
         if (email == null || email.isBlank() || senha == null || senha.isBlank())
             throw new IllegalArgumentException("E-mail e senha são obrigatórios");
@@ -67,6 +69,7 @@ public class AuthService {
         return emitir(usuario);
     }
 
+    @Transactional
     public Resultado renovar(String token) {
         if (token == null || token.isBlank())
             throw new IllegalArgumentException("Refresh token é obrigatório");

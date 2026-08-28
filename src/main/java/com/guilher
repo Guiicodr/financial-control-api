@@ -1,0 +1,52 @@
+package com.guilherme.controlefinanceiro.exception;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.util.Map;
+
+/**
+ * Tratamento global de exceções da API.
+ *
+ * Sem este advice, qualquer exceção não tratada subia até a cadeia de
+ * segurança (BadCredentialsException é uma AuthenticationException!) e era
+ * convertida em 401 "Não autenticado" pelo entry point — mascarando o erro
+ * real. Aqui cada caso vira uma resposta JSON limpa e o erro inesperado é
+ * logado com stack trace para o Railway.
+ */
+@RestControllerAdvice
+public class ApiExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
+
+    /** Login/senha errados ou usuário inexistente: 401 com mensagem clara. */
+    @ExceptionHandler({BadCredentialsException.class, UsernameNotFoundException.class})
+    public ResponseEntity<Map<String, String>> credenciaisInvalidas(Exception ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("error", "E-mail ou senha inválidos"));
+    }
+
+    /** Regras de negócio (campos obrigatórios, e-mail duplicado etc.): 400. */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, String>> requisicaoInvalida(IllegalArgumentException ex) {
+        String mensagem = ex.getMessage() == null ? "Requisição inválida" : ex.getMessage();
+        return ResponseEntity.badRequest().body(Map.of("error", mensagem));
+    }
+
+    /**
+     * Qualquer outro erro: 500 com log completo no servidor (o cliente recebe
+     * apenas uma mensagem genérica, sem vazar detalhes internos).
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, String>> erroInesperado(Exception ex) {
+        log.error("Erro não tratado na API", ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Erro interno no servidor"));
+    }
+}
