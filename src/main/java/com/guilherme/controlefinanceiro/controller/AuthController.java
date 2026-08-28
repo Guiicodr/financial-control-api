@@ -2,7 +2,9 @@ package com.guilherme.controlefinanceiro.controller;
 
 import com.guilherme.controlefinanceiro.service.AuthService;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.Map;
 
 @RestController
@@ -16,9 +18,9 @@ public class AuthController {
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
-    public Object registrar(@RequestBody Map<String, Object> body) {
-        System.out.println(">>> PAYLOAD DE CADASTRO RECEBIDO: " + body);
-        String name = (String) body.get("name");
+    public Map<String, Object> registrar(@RequestBody Map<String, Object> body) {
+        // Aceita "name" (padrão) e "nome" (compatibilidade com versões antigas do front)
+        String name = body.get("name") != null ? (String) body.get("name") : (String) body.get("nome");
         String email = (String) body.get("email");
         String senha = (String) body.get("senha");
         if (senha == null)
@@ -29,8 +31,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public Object login(@RequestBody Map<String, Object> body) {
-        System.out.println(">>> PAYLOAD DE LOGIN RECEBIDO: " + body);
+    public AuthService.Resultado login(@RequestBody Map<String, Object> body) {
         String email = (String) body.get("email");
         String senha = (String) body.get("senha");
         if (senha == null)
@@ -42,5 +43,14 @@ public class AuthController {
     @PostMapping("/refresh")
     public AuthService.Resultado refresh(@RequestBody Map<String, String> body) {
         return service.renovar(body.get("refreshToken"));
+    }
+
+    /**
+     * Converte erros de validação/credenciais em HTTP 400 com corpo JSON,
+     * em vez de deixar estourar 500 no servidor.
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, String>> tratarRegraInvalida(IllegalArgumentException ex) {
+        return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
     }
 }
