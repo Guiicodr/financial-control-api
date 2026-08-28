@@ -20,10 +20,16 @@ import java.util.List;
 @Configuration
 public class CorsConfig {
 
-    private static final List<String> DEFAULT_ALLOWED_ORIGINS = List.of(
-            "http://localhost:5173",
-            "http://localhost:3000",
-            "https://financial-control-dashboard-smoky.vercel.app");
+    /**
+     * A Vercel gera URLs distintas a cada deploy/branch (ex.:
+     * financial-control-dashboard-git-main-guiicodr1.vercel.app,
+     * ...-smoky.vercel.app). Por isso usamos PADRÕES de origin em vez de
+     * origins fixos: qualquer subdomínio de vercel.app é aceito, além de
+     * localhost em qualquer porta para desenvolvimento.
+     */
+    private static final List<String> DEFAULT_ALLOWED_ORIGIN_PATTERNS = List.of(
+            "http://localhost:*",
+            "https://*.vercel.app");
 
     /**
      * Permite sobrescrever os origins via variável de ambiente no Railway:
@@ -33,15 +39,15 @@ public class CorsConfig {
     public CorsConfigurationSource corsConfigurationSource(
             @Value("${app.cors.allowed-origins:}") String allowedOriginsEnv) {
 
-        List<String> origins = (allowedOriginsEnv == null || allowedOriginsEnv.isBlank())
-                ? DEFAULT_ALLOWED_ORIGINS
+        List<String> patterns = (allowedOriginsEnv == null || allowedOriginsEnv.isBlank())
+                ? DEFAULT_ALLOWED_ORIGIN_PATTERNS
                 : Arrays.stream(allowedOriginsEnv.split(","))
                         .map(String::trim)
                         .filter(origin -> !origin.isEmpty())
                         .toList();
 
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(origins);
+        configuration.setAllowedOriginPatterns(patterns);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
         configuration.setExposedHeaders(List.of("Authorization"));
