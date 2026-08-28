@@ -25,6 +25,10 @@ public class Usuario {
     @Column(nullable = false)
     private String senha;
 
+    // Número do WhatsApp (apenas dígitos) vinculado à conta para lançamentos via chat
+    @Column
+    private String telefone;
+
     public Usuario() {
     }
 
@@ -60,5 +64,13 @@ public class Usuario {
 
     public void setSenha(String senha) {
         this.senha = senha;
+    }
+
+    public String getTelefone() {
+        return telefone;
+    }
+
+    public void setTelefone(String telefone) {
+        this.telefone = telefone;
     }
 }

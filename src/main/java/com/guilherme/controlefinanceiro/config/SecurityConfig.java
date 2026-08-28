@@ -87,6 +87,9 @@ public class SecurityConfig {
                         // /auth/** totalmente aberto (registro, login e refresh via POST)
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/**").permitAll()
+                        // Webhook do WhatsApp: autenticado pelo token do provedor,
+                        // não por JWT (o remetente é o WhatsApp/Twilio/Meta).
+                        .requestMatchers("/webhooks/**").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(naoAutenticadoEntryPoint()))

@@ -24,4 +24,8 @@ public class UsuarioAtualService {
     public Usuario obter() {
         return obter(SecurityContextHolder.getContext().getAuthentication());
     }
+
+    public Usuario salvar(Usuario usuario) {
+        return repository.save(usuario);
+    }
 }
