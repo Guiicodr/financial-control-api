@@ -12,6 +12,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -28,8 +29,11 @@ public class SecurityConfig {
     @Bean
     UserDetailsService userDetailsService(UsuarioRepository repository) {
         return email -> repository.findByEmail(email)
-                .map(user -> User.withUsername(user.getEmail()).password(user.getSenha()).roles("USER").build())
-                .orElseThrow();
+                .map(user -> User.withUsername(user.getEmail())
+                        .password(user.getSenha())
+                        .roles("USER")
+                        .build())
+                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado: " + email));
     }
 
     @Bean
@@ -47,13 +51,6 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/auth/**", "/h2-console/**").permitAll()
                         .anyRequest().authenticated())
-                // Adiciona tratamento explícito para falhas de autenticação não retornarem 403
-                // genérico
-                .exceptionHandling(exceptions -> exceptions
-                        .authenticationEntryPoint((request, response, authException) -> {
-                            response.sendError(javax.servlet.http.HttpServletResponse.SC_UNAUTHORIZED,
-                                    authException.getMessage());
-                        }))
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
