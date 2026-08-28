@@ -16,12 +16,14 @@ public class AuthController {
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     public UsuarioResponse registrar(@RequestBody AuthRequest request) {
+        System.out.println(">>> RECEBEU REQUISIÇÃO DE CADASTRO PARA: " + request.email());
         var usuario = service.registrar(request.name(), request.email(), request.senha());
         return new UsuarioResponse(usuario.getId(), usuario.getName(), usuario.getEmail());
     }
 
     @PostMapping("/login")
     public AuthService.Resultado login(@RequestBody AuthRequest request) {
+        System.out.println(">>> RECEBEU REQUISIÇÃO DE LOGIN PARA: " + request.email());
         return service.autenticar(request.email(), request.senha());
     }
 
