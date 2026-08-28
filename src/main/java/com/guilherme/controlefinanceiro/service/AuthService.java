@@ -37,7 +37,16 @@ public class AuthService {
     }
 
     public Resultado autenticar(String email, String senha) {
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, senha));
+        try {
+            System.out.println("Tentando autenticar usuário: " + email);
+            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, senha));
+            System.out.println("Autenticação bem-sucedida para: " + email);
+        } catch (Exception e) {
+            System.out.println("ERRO FATAL NA AUTENTICAÇÃO: " + e.getClass().getName() + " - " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+
         Usuario usuario = usuarios.findByEmail(email).orElseThrow();
         return emitir(usuario);
     }
