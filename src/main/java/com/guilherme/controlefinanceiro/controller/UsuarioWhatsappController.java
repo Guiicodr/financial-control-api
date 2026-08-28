@@ -3,6 +3,7 @@ package com.guilherme.controlefinanceiro.controller;
 import com.guilherme.controlefinanceiro.model.Usuario;
 import com.guilherme.controlefinanceiro.service.UsuarioAtualService;
 import com.guilherme.controlefinanceiro.service.WhatsAppService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -21,10 +22,13 @@ public class UsuarioWhatsappController {
 
     private final UsuarioAtualService usuarioAtual;
     private final WhatsAppService whatsAppService;
+    private final String botNumero;
 
-    public UsuarioWhatsappController(UsuarioAtualService usuarioAtual, WhatsAppService whatsAppService) {
+    public UsuarioWhatsappController(UsuarioAtualService usuarioAtual, WhatsAppService whatsAppService,
+            @Value("${app.whatsapp.bot-number:}") String botNumero) {
         this.usuarioAtual = usuarioAtual;
         this.whatsAppService = whatsAppService;
+        this.botNumero = botNumero == null ? "" : botNumero;
     }
 
     @GetMapping
@@ -32,7 +36,8 @@ public class UsuarioWhatsappController {
         Usuario usuario = usuarioAtual.obter();
         return Map.of(
                 "telefone", usuario.getTelefone() == null ? "" : usuario.getTelefone(),
-                "vinculado", usuario.getTelefone() != null && !usuario.getTelefone().isBlank());
+                "vinculado", usuario.getTelefone() != null && !usuario.getTelefone().isBlank(),
+                "botNumero", botNumero);
     }
 
     @PostMapping
@@ -51,6 +56,7 @@ public class UsuarioWhatsappController {
         return Map.of(
                 "telefone", normalizado,
                 "vinculado", true,
+                "botNumero", botNumero,
                 "mensagem", "Número vinculado! Envie 'ajuda' para o bot no WhatsApp para ver os comandos.");
     }
 }

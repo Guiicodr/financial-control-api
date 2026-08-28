@@ -1,5 +1,6 @@
 package com.guilherme.controlefinanceiro.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.guilherme.controlefinanceiro.service.WhatsAppService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,11 +29,13 @@ import java.util.Map;
  *
  * 1) Twilio WhatsApp (form-urlencoded):
  *    - POST /webhooks/whatsapp  (Messaging → "When a message comes in")
- *    - Campos: From=whatsapp:+5511..., Body=gastei 25,50 no almoço
+ *    - A resposta é TwiML XML: <Response><Message>...</Message></Response>
  *
  * 2) Meta WhatsApp Cloud API (JSON):
  *    - GET  /webhooks/whatsapp  (verificação com hub.challenge)
  *    - POST /webhooks/whatsapp  (mensagens; entry[0].changes[0].value.messages[0])
+ *    - A resposta é enviada via Graph API (requer WHATSAPP_TOKEN e
+ *      WHATSAPP_PHONE_NUMBER_ID configurados no Railway).
  *
  * Segurança opcional: defina WHATSAPP_WEBHOOK_TOKEN no Railway e configure o
  * mesmo valor no provedor (query ?token=... ou header X-Webhook-Token).
@@ -45,6 +48,7 @@ public class WhatsAppWebhookController {
     private final String webhookToken;
     private final String metaToken;
     private final String metaPhoneNumberId;
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient http = HttpClient.newHttpClient();
 
     public WhatsAppWebhookController(WhatsAppService service,
@@ -67,8 +71,6 @@ public class WhatsAppWebhookController {
         if (hubChallenge == null)
             return ResponseEntity.badRequest().body("hub.challenge ausente");
 
-        // Se um token de verificação estiver configurado, valide; caso contrário,
-        // apenas ecoe o challenge (modo de teste).
         String verifyToken = System.getenv().getOrDefault("WHATSAPP_VERIFY_TOKEN", "");
         if (!verifyToken.isBlank() && !verifyToken.equals(hubVerifyToken)) {
             return ResponseEntity.status(403).body("verify_token inválido");
@@ -138,7 +140,11 @@ public class WhatsAppWebhookController {
             return;
         }
         try {
-            String payload = payloadMeta(to, texto);
+            String payload = objectMapper.writeValueAsString(Map.of(
+                    "messaging_product", "whatsapp",
+                    "to", to,
+                    "type", "text",
+                    "text", Map.of("body", texto)));
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("https://graph.facebook.com/v20.0/" + metaPhoneNumberId + "/messages"))
@@ -154,34 +160,6 @@ public class WhatsAppWebhookController {
         } catch (Exception e) {
             log.error("Falha ao enviar resposta via Meta Cloud API", e);
         }
-    }
-
-    /** Monta o JSON de envio de texto da Meta Cloud API. */
-    private String payloadMeta(String to, String texto) {
-        String body = texto.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
-        return "{\"messaging_product\":\"whatsapp\",\"to\":\"" + to
-                + "\",\"type\":\"text\",\"text\":{\"body\":\"" + body + "\"}}";
-    }
-
-    /**
-     * Escapa caracteres especiais para uso seguro dentro de TwiML/XML.
-     * As entidades são montadas por concatenação para ficarem explícitas.
-     */
-    private String escaparXml(String texto) {
-        String amp = "&" + "amp;";
-        String lt = "&" + "lt;";
-        String gt = "&" + "gt;";
-        String quot = "&" + "quot;";
-        String apos = "&" + "apos;";
-        return texto.replace("&", amp)
-                .replace("<", lt)
-                .replace(">", gt)
-                .replace("\"", quot)
-                .replace("'", apos);
     }
 
     /** Extrai [telefone, mensagem] do payload da Meta WhatsApp Cloud API. */
@@ -222,5 +200,13 @@ public class WhatsAppWebhookController {
             log.warn("Payload Meta não reconhecido: {}", e.getMessage());
             return null;
         }
+    }
+
+    private String escaparXml(String texto) {
+        return texto.replace("&", "&")
+                .replace("<", "<")
+                .replace(">", ">")
+                .replace("\"", """)
+                .replace("'", "'");
     }
 }
