@@ -137,6 +137,19 @@ Example request:
 }
 ```
 
+## 🔑 Test Credentials
+
+A test account is automatically created when the application starts (via `DataInitializer`):
+
+| Field | Value |
+|---|---|
+| **E-mail** | `teste@teste.com` |
+| **Password** | `teste123` |
+
+The frontend also has a **"Use test account"** button on the login page that auto-fills these credentials.
+
+---
+
 ## How to Run
 
 1. Clone the repository:
