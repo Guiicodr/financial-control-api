@@ -86,8 +86,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Preflight do navegador sempre liberado
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // /auth/** totalmente aberto (registro, login e refresh via POST)
-                        .requestMatchers("/auth/**").permitAll()
+                        // /auth/** aberto apenas para POST (registro, login e refresh)
                         .requestMatchers(HttpMethod.POST, "/auth/**").permitAll()
                         // Webhook do WhatsApp: autenticado pelo token do provedor,
                         // não por JWT (o remetente é o WhatsApp/Twilio/Meta).
@@ -96,7 +95,6 @@ public class SecurityConfig {
                         // esse dispatch passa pela cadeia de segurança. Sem este
                         // permitAll, TODO erro não tratado virava 401 "Não autenticado".
                         .requestMatchers("/error").permitAll()
-                        .requestMatchers("/h2-console/**").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(naoAutenticadoEntryPoint()))
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))

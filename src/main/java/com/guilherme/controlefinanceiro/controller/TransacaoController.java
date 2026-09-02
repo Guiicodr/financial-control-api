@@ -40,7 +40,7 @@ public class TransacaoController {
         return service.gastosMensais();
     }
 
-    @DeleteMapping("transacoes/{id}")
+    @DeleteMapping("/transacoes/{id}")
     public void deletar(@PathVariable Long id) {
         service.deletar(id);
     }
