@@ -1,7 +1,9 @@
 package com.guilherme.controlefinanceiro.service;
 
+import com.guilherme.controlefinanceiro.model.PasswordResetToken;
 import com.guilherme.controlefinanceiro.model.RefreshToken;
 import com.guilherme.controlefinanceiro.model.Usuario;
+import com.guilherme.controlefinanceiro.repository.PasswordResetTokenRepository;
 import com.guilherme.controlefinanceiro.repository.RefreshTokenRepository;
 import com.guilherme.controlefinanceiro.repository.UsuarioRepository;
 import org.slf4j.Logger;
@@ -26,13 +28,17 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
 
+    private final PasswordResetTokenRepository resetTokens;
+
     public AuthService(UsuarioRepository usuarios, RefreshTokenRepository refreshTokens, PasswordEncoder encoder,
-            AuthenticationManager authenticationManager, JwtService jwtService) {
+            AuthenticationManager authenticationManager, JwtService jwtService,
+            PasswordResetTokenRepository resetTokens) {
         this.usuarios = usuarios;
         this.refreshTokens = refreshTokens;
         this.encoder = encoder;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
+        this.resetTokens = resetTokens;
     }
 
     public Usuario registrar(String name, String email, String senha) {
@@ -90,5 +96,36 @@ public class AuthService {
     }
 
     public record Resultado(String accessToken, String refreshToken, String name) {
+    }
+
+    @Transactional
+    public String solicitarResetSenha(String email) {
+        if (email == null || email.isBlank())
+            throw new IllegalArgumentException("E-mail é obrigatório");
+        usuarios.findByEmail(email.toLowerCase().trim())
+                .orElseThrow(() -> new IllegalArgumentException("E-mail não encontrado"));
+        resetTokens.deleteByEmail(email.toLowerCase().trim());
+        String token = UUID.randomUUID().toString() + "-" + UUID.randomUUID().toString();
+        resetTokens.save(new PasswordResetToken(token, email.toLowerCase().trim(), Instant.now().plusSeconds(3600)));
+        log.info("🔐 Reset token gerado para {}: {}", email, token);
+        return token;
+    }
+
+    @Transactional
+    public void resetarSenha(String token, String novaSenha) {
+        if (token == null || token.isBlank())
+            throw new IllegalArgumentException("Token é obrigatório");
+        if (novaSenha == null || novaSenha.length() < 6)
+            throw new IllegalArgumentException("Senha deve ter no mínimo 6 caracteres");
+        PasswordResetToken reset = resetTokens.findByTokenAndUtilizadoFalse(token)
+                .filter(r -> r.getExpiracao().isAfter(Instant.now()))
+                .orElseThrow(() -> new IllegalArgumentException("Token inválido ou expirado"));
+        Usuario usuario = usuarios.findByEmail(reset.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
+        usuario.setSenha(encoder.encode(novaSenha));
+        usuarios.save(usuario);
+        reset.setUtilizado(true);
+        resetTokens.save(reset);
+        log.info("🔐 Senha redefinida para: {}", reset.getEmail());
     }
 }

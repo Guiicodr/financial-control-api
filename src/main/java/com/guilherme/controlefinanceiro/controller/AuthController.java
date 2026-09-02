@@ -55,4 +55,28 @@ public class AuthController {
     public AuthService.Resultado refresh(@RequestBody Map<String, String> body) {
         return service.renovar(body.get("refreshToken"));
     }
+
+    @PostMapping("/forgot-password")
+    public Map<String, String> forgotPassword(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        if (email == null || !EMAIL_PATTERN.matcher(email).matches())
+            throw new IllegalArgumentException("E-mail inválido");
+        String token = service.solicitarResetSenha(email);
+        return Map.of(
+            "mensagem", "Link de recuperação enviado para seu e-mail (em produção). Token de teste: " + token,
+            "token", token
+        );
+    }
+
+    @PostMapping("/reset-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void resetPassword(@RequestBody Map<String, String> body) {
+        String token = body.get("token");
+        String senha = body.get("senha");
+        if (token == null || token.isBlank())
+            throw new IllegalArgumentException("Token é obrigatório");
+        if (senha == null || senha.length() < 6)
+            throw new IllegalArgumentException("Senha deve ter no mínimo 6 caracteres");
+        service.resetarSenha(token, senha);
+    }
 }
