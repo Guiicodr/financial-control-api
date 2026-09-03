@@ -69,8 +69,7 @@ public class AuthController {
     }
 
     @PostMapping("/reset-password")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void resetPassword(@RequestBody Map<String, String> body) {
+    public Map<String, String> resetPassword(@RequestBody Map<String, String> body) {
         String token = body.get("token");
         String senha = body.get("senha");
         if (token == null || token.isBlank())
@@ -78,5 +77,6 @@ public class AuthController {
         if (senha == null || senha.length() < 6)
             throw new IllegalArgumentException("Senha deve ter no mínimo 6 caracteres");
         service.resetarSenha(token, senha);
+        return Map.of("mensagem", "Senha redefinida com sucesso");
     }
 }
