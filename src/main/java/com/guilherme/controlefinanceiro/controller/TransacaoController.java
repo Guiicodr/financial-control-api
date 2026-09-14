@@ -40,6 +40,10 @@ public class TransacaoController {
         return service.gastosMensais();
     }
 
+    @PutMapping("/transacoes/{id}")
+    public Transacao atualizar(@PathVariable Long id, @RequestBody Transacao transacao) {
+        return service.atualizar(id, transacao);
+    }
     @DeleteMapping("/transacoes/{id}")
     public void deletar(@PathVariable Long id) {
         service.deletar(id);

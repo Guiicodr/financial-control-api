@@ -20,6 +20,10 @@ public class OrcamentoController {
         return service.salvar(item);
     }
 
+    @GetMapping
+    public List<Orcamento> listar() {
+        return service.listar();
+    }
     @GetMapping("/alertas")
     public List<Map<String, Object>> alertas() {
         return service.alertas();

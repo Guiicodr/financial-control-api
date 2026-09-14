@@ -26,6 +26,9 @@ public class OrcamentoService {
         return orcamentos.save(item);
     }
 
+    public List<Orcamento> listar() {
+        return orcamentos.findAllByUsuario(usuarioAtual.obter());
+    }
     public List<Map<String, Object>> alertas() {
         var usuario = usuarioAtual.obter();
         var mes = YearMonth.now();

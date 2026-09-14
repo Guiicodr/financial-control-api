@@ -47,6 +47,27 @@ public class TransacaoService {
                 .ifPresent(repository::delete);
     }
 
+    /**
+     * Atualiza uma transacao existente do usuario autenticado.
+     * Endpoint aditivo usado pelo front para editar lancamentos.
+     */
+    public Transacao atualizar(Long id, Transacao dados) {
+        Usuario usuario = usuarioAtual.obter();
+        Transacao existente = repository.findById(id)
+                .filter(item -> item.getUsuario().getId().equals(usuario.getId()))
+                .orElseThrow(() -> new IllegalArgumentException("Transacao nao encontrada"));
+        if (dados.getDescricao() != null)
+            existente.setDescricao(dados.getDescricao());
+        if (dados.getValor() != null)
+            existente.setValor(dados.getValor());
+        if (dados.getTipo() != null)
+            existente.setTipo(dados.getTipo());
+        if (dados.getData() != null)
+            existente.setData(dados.getData());
+        if (dados.getCategoria() != null)
+            existente.setCategoria(dados.getCategoria());
+        return repository.save(existente);
+    }
     public List<Map<String, Object>> gastosMensais() {
         List<Map<String, Object>> resultado = new ArrayList<>();
         List<Transacao> transacoes = repository.findAllByUsuario(usuarioAtual.obter());
