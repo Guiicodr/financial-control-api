@@ -33,3 +33,13 @@ build/
 .vscode/
 plan.md
 progress.md
+
+### Banco local H2 ###
+# Nunca versionar: estes arquivos contêm dados reais de usuários
+# (inclusive hashes de senha). Mantidos aqui apenas para o dev rodar local.
+data/
+*.mv.db
+*.trace.db
+
+# Logs de build/execução local
+*.log
