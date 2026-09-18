@@ -1,0 +1,20 @@
+# Nunca enviar ao contexto de build do Docker o que não é necessário para
+# compilar. O `COPY . .` antigo levava o banco H2 local (data/, com dados reais
+# de usuários) e o target/ para dentro da imagem.
+.git
+.gitignore
+.gitattributes
+.idea
+.vscode
+.github
+data/
+*.mv.db
+*.trace.db
+target/
+*.log
+README.md
+HELP.md
+plan.md
+progress.md
+Dockerfile
+.dockerignore
