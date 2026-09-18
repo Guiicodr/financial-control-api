@@ -1,5 +1,6 @@
 package com.guilherme.controlefinanceiro.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -7,9 +8,22 @@ import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
 import java.time.LocalDate;
 
+/**
+ * Índices para as consultas reais da API.
+ *
+ * Todas as listagens/agregações filtram por usuário e depois por período ou
+ * categoria (ver TransacaoRepository/TransacaoService). Sem índice composto, o
+ * Postgres faz full scan em cada request e o custo cresce linearmente com o
+ * histórico de TODOS os usuários.
+ */
 @Entity
+@Table(indexes = {
+        @Index(name = "idx_income_usuario_data", columnList = "usuario_id, data")
+})
 public class Income {
 
     @Id
@@ -37,6 +51,12 @@ public class Income {
         this.valor = valor;
     }
 
+    /**
+     * Somente leitura no JSON: o id de um lançamento é sempre o do registro
+     * existente do usuário autenticado (ver IncomeService.salvarRendaBase), e
+     * nunca o valor enviado pelo cliente.
+     */
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     public Long getId() {
         return id;
     }

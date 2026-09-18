@@ -18,6 +18,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Map;
 
 /**
@@ -34,8 +35,12 @@ import java.util.Map;
  *    - GET  /webhooks/whatsapp  (verificação com hub.challenge)
  *    - POST /webhooks/whatsapp  (mensagens; entry[0].changes[0].value.messages[0])
  *
- * Segurança opcional: defina WHATSAPP_WEBHOOK_TOKEN no Railway e configure o
- * mesmo valor no provedor (query ?token=... ou header X-Webhook-Token).
+ * Segurança: defina WHATSAPP_WEBHOOK_TOKEN no Railway e configure o mesmo valor
+ * no provedor (header X-Webhook-Token ou query ?token=...). O endpoint é
+ * PÚBLICO no SecurityFilterChain, então o token é a única barreira: sem ele
+ * configurado, esta API responde 401 (fail-closed) em vez de aceitar qualquer
+ * POST anônimo — que permitiria lançar despesas na conta de outra pessoa
+ * apenas sabendo o telefone dela.
  */
 @RestController
 public class WhatsAppWebhookController {
@@ -57,6 +62,28 @@ public class WhatsAppWebhookController {
         this.metaPhoneNumberId = metaPhoneNumberId == null ? "" : metaPhoneNumberId;
     }
 
+    /**
+     * Valida o token do provedor de forma fail-closed: se o servidor não tem
+     * WHATSAPP_WEBHOOK_TOKEN configurado, NENHUMA chamada é aceita. A comparação
+     * usa {@link MessageDigest#isEqual} para não vazar o token por timing attack.
+     */
+    private boolean tokenValido(String headerToken, Map<String, String> form) {
+        if (webhookToken.isBlank()) {
+            return false;
+        }
+        String queryToken = form == null ? null : form.get("token");
+        return iguais(webhookToken, headerToken) || iguais(webhookToken, queryToken);
+    }
+
+    private boolean iguais(String esperado, String recebido) {
+        if (recebido == null) {
+            return false;
+        }
+        return MessageDigest.isEqual(
+                esperado.getBytes(StandardCharsets.UTF_8),
+                recebido.getBytes(StandardCharsets.UTF_8));
+    }
+
     /** Verificação do webhook da Meta (WhatsApp Cloud API). */
     @GetMapping(value = "/webhooks/whatsapp", produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<String> verificarMeta(
@@ -68,9 +95,12 @@ public class WhatsAppWebhookController {
             return ResponseEntity.badRequest().body("hub.challenge ausente");
 
         // Se um token de verificação estiver configurado, valide; caso contrário,
-        // apenas ecoe o challenge (modo de teste).
+        // apenas ecoe o challenge (modo de teste). O challenge é apenas um eco do
+        // valor enviado pela Meta, por isso não é um vazamento de dados.
         String verifyToken = System.getenv().getOrDefault("WHATSAPP_VERIFY_TOKEN", "");
-        if (!verifyToken.isBlank() && !verifyToken.equals(hubVerifyToken)) {
+        if (verifyToken.isBlank()) {
+            log.warn("WHATSAPP_VERIFY_TOKEN não configurado: verificação da Meta aceita sem validação.");
+        } else if (!verifyToken.equals(hubVerifyToken)) {
             return ResponseEntity.status(403).body("verify_token inválido");
         }
         return ResponseEntity.ok(hubChallenge);
@@ -87,9 +117,10 @@ public class WhatsAppWebhookController {
             @RequestBody(required = false) Map<String, Object> json,
             @RequestHeader(value = "X-Webhook-Token", required = false) String headerToken) {
 
-        if (!webhookToken.isBlank() && !webhookToken.equals(headerToken)
-                && !webhookToken.equals(form.get("token"))) {
-            return ResponseEntity.status(401).build();
+        if (!tokenValido(headerToken, form)) {
+            log.warn("Webhook do WhatsApp rejeitado: token ausente ou inválido "
+                    + "(configure WHATSAPP_WEBHOOK_TOKEN no servidor e no provedor).");
+            return ResponseEntity.status(401).body("token inválido");
         }
 
         try {

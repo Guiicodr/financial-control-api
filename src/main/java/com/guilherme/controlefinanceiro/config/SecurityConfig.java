@@ -4,6 +4,7 @@ import com.guilherme.controlefinanceiro.repository.UsuarioRepository;
 import com.guilherme.controlefinanceiro.service.JwtService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -78,7 +79,10 @@ public class SecurityConfig {
     SecurityFilterChain securityFilterChain(HttpSecurity http,
             JwtService jwtService,
             UserDetailsService userDetailsService,
-            CorsConfigurationSource corsConfigurationSource) throws Exception {
+            CorsConfigurationSource corsConfigurationSource,
+            @Value("${app.rate-limit.auth-requests:20}") int authRateLimit,
+            @Value("${app.rate-limit.webhook-requests:60}") int webhookRateLimit,
+            @Value("${app.rate-limit.window-ms:60000}") long rateLimitWindowMs) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
@@ -98,6 +102,15 @@ public class SecurityConfig {
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(naoAutenticadoEntryPoint()))
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
+                // Rate limit antes da autenticação: protege /auth/** de brute
+                // force e /webhooks/** de flood sem precisar de JWT.
+                // A âncora precisa ser um filtro CONHECIDO do Spring Security:
+                // usar JwtAuthenticationFilter.class aqui (filtro próprio) faz o
+                // contexto falhar no boot com "does not have a registered order".
+                // Como ambos entram antes do UsernamePasswordAuthenticationFilter,
+                // a ordem de registro define a execução: rate limit primeiro.
+                .addFilterBefore(new RateLimitFilter(authRateLimit, webhookRateLimit, rateLimitWindowMs),
+                        UsernamePasswordAuthenticationFilter.class)
                 // Filtro instanciado aqui (não é bean): evita o registro duplo
                 // servlet container + security chain que descartava a autenticação.
                 .addFilterBefore(new JwtAuthenticationFilter(jwtService, userDetailsService),

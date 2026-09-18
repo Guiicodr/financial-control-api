@@ -1,5 +1,6 @@
 package com.guilherme.controlefinanceiro.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -58,6 +59,15 @@ public class Usuario {
         this.email = email;
     }
 
+    /**
+     * O hash da senha NUNCA sai em resposta JSON.
+     *
+     * Sem este @JsonIgnore, qualquer entidade que referencie o usuário
+     * (Transacao, Income, Objetivo, Orcamento, CartaoCredito) serializava o
+     * objeto aninhado inteiro — ou seja, GET /transacoes devolvia o hash
+     * BCrypt da senha de quem chamou.
+     */
+    @JsonIgnore
     public String getSenha() {
         return senha;
     }
@@ -66,6 +76,13 @@ public class Usuario {
         this.senha = senha;
     }
 
+    /**
+     * O número de WhatsApp é dado pessoal e só é exposto pelo endpoint
+     * /usuario/whatsapp, que monta a resposta explicitamente. Serializá-lo em
+     * toda transação/listagem não tem uso no front e amplia a superfície de
+     * vazamento de PII.
+     */
+    @JsonIgnore
     public String getTelefone() {
         return telefone;
     }

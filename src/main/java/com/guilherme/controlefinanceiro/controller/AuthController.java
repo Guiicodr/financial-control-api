@@ -61,11 +61,11 @@ public class AuthController {
         String email = body.get("email");
         if (email == null || !EMAIL_PATTERN.matcher(email).matches())
             throw new IllegalArgumentException("E-mail inválido");
-        String token = service.solicitarResetSenha(email);
-        return Map.of(
-            "mensagem", "Link de recuperação enviado para seu e-mail (em produção). Token de teste: " + token,
-            "token", token
-        );
+        service.solicitarResetSenha(email);
+        // Resposta idêntica exista ou não a conta: não confirma e-mails cadastrados
+        // e não devolve o token (que ia no corpo e permitia tomar a conta alheia).
+        return Map.of("mensagem",
+            "Se este e-mail estiver cadastrado, enviamos as instruções de recuperação.");
     }
 
     @PostMapping("/reset-password")

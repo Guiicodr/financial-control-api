@@ -1,16 +1,20 @@
 package com.guilherme.controlefinanceiro.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
+import jakarta.persistence.Index;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 
 import java.time.LocalDate;
 
 @Entity
+@Table(indexes = @Index(name = "idx_objetivo_usuario", columnList = "usuario_id"))
 public class Objetivo {
 
     @Id
@@ -72,6 +76,11 @@ public class Objetivo {
         this.tipo = tipo;
     }
 
+    /**
+     * Somente leitura no JSON: sem isso um POST /objetivos com {"id": 7}
+     * sobrescrevia a meta de outro usuário, transferindo a posse do registro.
+     */
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     public Long getId() {
         return id;
     }

@@ -1,11 +1,16 @@
 package com.guilherme.controlefinanceiro.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 
 import java.time.LocalDate;
 
 // Modelo dos dados financeiros enviados
 @Entity
+@Table(indexes = {
+        @Index(name = "idx_transacao_usuario_data", columnList = "usuario_id, data"),
+        @Index(name = "idx_transacao_usuario_categoria", columnList = "usuario_id, categoria")
+})
 public class Transacao {
 
     // Organização ordenada dos valores alocados
@@ -70,6 +75,15 @@ public class Transacao {
         this.data = data;
     }
 
+    /**
+     * O id é definido apenas pelo servidor (gerado pelo banco).
+     *
+     * READ_ONLY faz o Jackson serializar o id nas respostas, mas IGNORAR
+     * qualquer id vindo no corpo JSON. Sem isso, um POST /transacoes com
+     * {"id": 42} virava UPDATE no save() e podia sobrescrever o registro de
+     * outro usuário (o dono passava a ser quem enviou a requisição).
+     */
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     public Long getId() {
         return id;
     }

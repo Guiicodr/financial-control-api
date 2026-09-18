@@ -8,6 +8,7 @@ import com.guilherme.controlefinanceiro.repository.RefreshTokenRepository;
 import com.guilherme.controlefinanceiro.repository.UsuarioRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -29,16 +30,20 @@ public class AuthService {
     private final JwtService jwtService;
 
     private final PasswordResetTokenRepository resetTokens;
+    /** Em dev é possível ver o token no log para testar o fluxo; em prod, nunca. */
+    private final boolean exporTokenEmLog;
 
     public AuthService(UsuarioRepository usuarios, RefreshTokenRepository refreshTokens, PasswordEncoder encoder,
             AuthenticationManager authenticationManager, JwtService jwtService,
-            PasswordResetTokenRepository resetTokens) {
+            PasswordResetTokenRepository resetTokens,
+            @Value("${app.reset-token.log-for-dev:false}") boolean exporTokenEmLog) {
         this.usuarios = usuarios;
         this.refreshTokens = refreshTokens;
         this.encoder = encoder;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.resetTokens = resetTokens;
+        this.exporTokenEmLog = exporTokenEmLog;
     }
 
     public Usuario registrar(String name, String email, String senha) {
@@ -99,16 +104,49 @@ public class AuthService {
     }
 
     @Transactional
-    public String solicitarResetSenha(String email) {
+    public void solicitarResetSenha(String email) {
         if (email == null || email.isBlank())
             throw new IllegalArgumentException("E-mail é obrigatório");
-        usuarios.findByEmail(email.toLowerCase().trim())
-                .orElseThrow(() -> new IllegalArgumentException("E-mail não encontrado"));
-        resetTokens.deleteByEmail(email.toLowerCase().trim());
-        String token = UUID.randomUUID().toString() + "-" + UUID.randomUUID().toString();
-        resetTokens.save(new PasswordResetToken(token, email.toLowerCase().trim(), Instant.now().plusSeconds(3600)));
-        log.info("🔐 Reset token gerado para {}: {}", email, token);
-        return token;
+        String normalizado = email.toLowerCase().trim();
+
+        // Não revela se o e-mail existe: sem usuário, o método termina em silêncio.
+        // Sem isso, o erro "E-mail não encontrado" permitia enumerar contas.
+        usuarios.findByEmail(normalizado).ifPresent(usuario -> {
+            resetTokens.deleteByEmail(normalizado);
+            String token = UUID.randomUUID().toString() + "-" + UUID.randomUUID().toString();
+            resetTokens.save(new PasswordResetToken(token, normalizado, Instant.now().plusSeconds(3600)));
+            notificarReset(usuario, token);
+        });
+    }
+
+    /**
+     * Entrega do token ao DONO do e-mail.
+     *
+     * O token NUNCA é devolvido na resposta HTTP nem escrito no log de produção:
+     * enquanto era devolvido, qualquer pessoa que soubesse o e-mail de outra
+     * podia pedir o reset e trocar a senha — tomada de conta completa.
+     *
+     * Pendência consciente: o envio por e-mail ainda não está implementado (exige
+     * spring-boot-starter-mail + credenciais SMTP). Até lá, em produção a
+     * solicitação apenas é registrada e o usuário precisa de outro canal de
+     * recuperação. Em dev (app.reset-token.log-for-dev=true) o token vai para o
+     * log para permitir testar o fluxo localmente.
+     */
+    private void notificarReset(Usuario usuario, String token) {
+        if (exporTokenEmLog) {
+            log.warn("🔐 [SOMENTE DEV] Reset token de {}: {}", usuario.getEmail(), token);
+            return;
+        }
+        log.info("🔐 Solicitação de recuperação registrada para {} (token válido por 1 hora).",
+                mascarar(usuario.getEmail()));
+    }
+
+    /** Ex.: gu***@gmail.com — suficiente para auditoria sem expor o e-mail todo. */
+    private String mascarar(String email) {
+        int arroba = email.indexOf('@');
+        if (arroba <= 1)
+            return "***" + email.substring(Math.max(arroba, 0));
+        return email.substring(0, 2) + "***" + email.substring(arroba);
     }
 
     @Transactional
@@ -126,6 +164,9 @@ public class AuthService {
         usuarios.save(usuario);
         reset.setUtilizado(true);
         resetTokens.save(reset);
-        log.info("🔐 Senha redefinida para: {}", reset.getEmail());
+        // Sessões antigas morrem junto com a senha antiga: se a conta foi
+        // comprometida, o invasor perde o refresh token de 30 dias.
+        refreshTokens.deleteByUsuario(usuario);
+        log.info("🔐 Senha redefinida para: {}", mascarar(reset.getEmail()));
     }
 }
