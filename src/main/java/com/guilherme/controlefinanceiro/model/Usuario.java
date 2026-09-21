@@ -8,6 +8,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Column;
 
+import java.time.Instant;
+
 @Entity
 @Table(name = "usuarios")
 public class Usuario {
@@ -29,6 +31,19 @@ public class Usuario {
     // Número do WhatsApp (apenas dígitos) vinculado à conta para lançamentos via chat
     @Column
     private String telefone;
+
+    /**
+     * Prova do consentimento/aceite dos documentos legais (LGPD art. 8, §1).
+     *
+     * O titular aceita os Termos de Uso e o Aviso de Privacidade no cadastro e a
+     * API guarda QUAL versão foi aceita e QUANDO: sem isso não há como demonstrar
+     * que houve manifestação de vontade livre, informada e inequívoca.
+     */
+    @Column(length = 32)
+    private String aceiteVersao;
+
+    @Column
+    private Instant aceiteEm;
 
     public Usuario() {
     }
@@ -89,5 +104,23 @@ public class Usuario {
 
     public void setTelefone(String telefone) {
         this.telefone = telefone;
+    }
+
+    /** Versão do documento legal aceita no cadastro (ex.: "2026-09-1"). */
+    public String getAceiteVersao() {
+        return aceiteVersao;
+    }
+
+    public void setAceiteVersao(String aceiteVersao) {
+        this.aceiteVersao = aceiteVersao;
+    }
+
+    /** Momento do aceite, definido pelo servidor (nunca pelo cliente). */
+    public Instant getAceiteEm() {
+        return aceiteEm;
+    }
+
+    public void setAceiteEm(Instant aceiteEm) {
+        this.aceiteEm = aceiteEm;
     }
 }

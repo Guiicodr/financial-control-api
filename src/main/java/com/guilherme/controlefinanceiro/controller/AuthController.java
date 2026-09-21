@@ -28,14 +28,23 @@ public class AuthController {
         String senha = (String) body.get("senha");
         if (senha == null)
             senha = (String) body.get("password"); // Fallback caso o front mande 'password'
+        // Versão dos documentos legais aceitos na tela de cadastro: o consentimento
+        // só é comprovável se a API souber QUAL texto o titular aceitou (LGPD art. 8).
+        Object versao = body.get("aceiteVersao") != null ? body.get("aceiteVersao") : body.get("termsVersion");
+        String aceiteVersao = versao == null ? null : String.valueOf(versao);
 
         if (email == null || !EMAIL_PATTERN.matcher(email).matches())
             throw new IllegalArgumentException("E-mail inválido");
         if (senha == null || senha.length() < 6)
             throw new IllegalArgumentException("Senha deve ter no mínimo 6 caracteres");
 
-        var usuario = service.registrar(name, email, senha);
-        return Map.of("id", usuario.getId(), "name", usuario.getName(), "email", usuario.getEmail());
+        var usuario = service.registrar(name, email, senha, aceiteVersao);
+        return Map.of(
+                "id", usuario.getId(),
+                "name", usuario.getName(),
+                "email", usuario.getEmail(),
+                "aceiteVersao", usuario.getAceiteVersao(),
+                "aceiteEm", usuario.getAceiteEm().toString());
     }
 
     @PostMapping("/login")

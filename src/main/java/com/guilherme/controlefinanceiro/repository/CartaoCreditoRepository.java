@@ -7,4 +7,7 @@ import java.util.List;
 
 public interface CartaoCreditoRepository extends JpaRepository<CartaoCredito, Long> {
     List<CartaoCredito> findAllByUsuario(Usuario usuario);
+
+    /** Exclusao de conta: apaga os cartoes do titular (LGPD art. 18, VI). */
+    void deleteAllByUsuario(Usuario usuario);
 }

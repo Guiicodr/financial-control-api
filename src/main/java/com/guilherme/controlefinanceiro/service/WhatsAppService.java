@@ -5,6 +5,7 @@ import com.guilherme.controlefinanceiro.model.Usuario;
 import com.guilherme.controlefinanceiro.repository.IncomeRepository;
 import com.guilherme.controlefinanceiro.repository.TransacaoRepository;
 import com.guilherme.controlefinanceiro.repository.UsuarioRepository;
+import com.guilherme.controlefinanceiro.util.PiiMasker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -84,8 +85,8 @@ public class WhatsAppService {
         transacao.setData(LocalDate.now());
         transacoes.save(transacao);
 
-        log.info("Lançamento via WhatsApp: usuario={} valor={} tipo={} categoria={}",
-                usuario.getEmail(), parsed.valor(), parsed.tipo(), parsed.categoria());
+        log.info("Lançamento via WhatsApp: usuario={} transacaoId={} tipo={} categoria={}",
+                PiiMasker.email(usuario.getEmail()), transacao.getId(), parsed.tipo(), parsed.categoria());
 
         return confirmacao(transacao, parsed.valor());
     }

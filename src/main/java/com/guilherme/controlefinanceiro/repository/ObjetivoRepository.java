@@ -7,4 +7,7 @@ import java.util.List;
 
 public interface ObjetivoRepository extends JpaRepository<Objetivo, Long> {
     List<Objetivo> findAllByUsuario(Usuario usuario);
+
+    /** Exclusao de conta: apaga as metas do titular (LGPD art. 18, VI). */
+    void deleteAllByUsuario(Usuario usuario);
 }

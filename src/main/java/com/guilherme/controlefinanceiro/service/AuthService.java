@@ -6,6 +6,7 @@ import com.guilherme.controlefinanceiro.model.Usuario;
 import com.guilherme.controlefinanceiro.repository.PasswordResetTokenRepository;
 import com.guilherme.controlefinanceiro.repository.RefreshTokenRepository;
 import com.guilherme.controlefinanceiro.repository.UsuarioRepository;
+import com.guilherme.controlefinanceiro.util.PiiMasker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,16 +47,28 @@ public class AuthService {
         this.exporTokenEmLog = exporTokenEmLog;
     }
 
-    public Usuario registrar(String name, String email, String senha) {
+    public Usuario registrar(String name, String email, String senha, String aceiteVersao) {
         if (name == null || name.isBlank())
             throw new IllegalArgumentException("Nome é obrigatório");
         if (email == null || email.isBlank())
             throw new IllegalArgumentException("E-mail é obrigatório");
         if (senha == null || senha.isBlank())
             throw new IllegalArgumentException("Senha é obrigatória");
+        // LGPD art. 8, §1º: o aceite dos documentos legais é condição do
+        // cadastro. A verificação fica no serviço (e não só no controller) para
+        // valer para qualquer chamada futura de registro.
+        if (aceiteVersao == null || aceiteVersao.isBlank())
+            throw new IllegalArgumentException(
+                    "É necessário aceitar os Termos de Uso e o Aviso de Privacidade para criar a conta");
         if (usuarios.findByEmail(email.toLowerCase().trim()).isPresent())
             throw new IllegalArgumentException("E-mail já cadastrado");
-        return usuarios.save(new Usuario(name.trim(), email.toLowerCase().trim(), encoder.encode(senha)));
+
+        Usuario usuario = new Usuario(name.trim(), email.toLowerCase().trim(), encoder.encode(senha));
+        // Versão vem do cliente (é o documento que ele leu); o instante é do
+        // servidor, para não depender do relógio de quem se cadastra.
+        usuario.setAceiteVersao(aceiteVersao.trim());
+        usuario.setAceiteEm(Instant.now());
+        return usuarios.save(usuario);
     }
 
     @Transactional
@@ -134,19 +147,11 @@ public class AuthService {
      */
     private void notificarReset(Usuario usuario, String token) {
         if (exporTokenEmLog) {
-            log.warn("🔐 [SOMENTE DEV] Reset token de {}: {}", usuario.getEmail(), token);
+            log.warn("🔐 [SOMENTE DEV] Reset token de {}: {}", PiiMasker.email(usuario.getEmail()), token);
             return;
         }
         log.info("🔐 Solicitação de recuperação registrada para {} (token válido por 1 hora).",
-                mascarar(usuario.getEmail()));
-    }
-
-    /** Ex.: gu***@gmail.com — suficiente para auditoria sem expor o e-mail todo. */
-    private String mascarar(String email) {
-        int arroba = email.indexOf('@');
-        if (arroba <= 1)
-            return "***" + email.substring(Math.max(arroba, 0));
-        return email.substring(0, 2) + "***" + email.substring(arroba);
+                PiiMasker.email(usuario.getEmail()));
     }
 
     @Transactional
@@ -167,6 +172,6 @@ public class AuthService {
         // Sessões antigas morrem junto com a senha antiga: se a conta foi
         // comprometida, o invasor perde o refresh token de 30 dias.
         refreshTokens.deleteByUsuario(usuario);
-        log.info("🔐 Senha redefinida para: {}", mascarar(reset.getEmail()));
+        log.info("🔐 Senha redefinida para: {}", PiiMasker.email(reset.getEmail()));
     }
 }

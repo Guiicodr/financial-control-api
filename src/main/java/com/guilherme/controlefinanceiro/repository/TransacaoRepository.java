@@ -8,4 +8,7 @@ import java.util.List;
 // Intermédio do banco de dados
 public interface TransacaoRepository extends JpaRepository<Transacao, Long> {
     List<Transacao> findAllByUsuario(Usuario usuario);
+
+    /** Exclusão de conta: apaga o histórico financeiro do titular (LGPD art. 18, VI). */
+    void deleteAllByUsuario(Usuario usuario);
 }

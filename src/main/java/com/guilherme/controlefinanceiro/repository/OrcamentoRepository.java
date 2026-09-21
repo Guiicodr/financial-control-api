@@ -11,4 +11,7 @@ public interface OrcamentoRepository extends JpaRepository<Orcamento, Long> {
 
     Optional<Orcamento> findByCategoriaAndUsuario(com.guilherme.controlefinanceiro.model.Categoria categoria,
             Usuario usuario);
+
+    /** Exclusao de conta: apaga os limites de orcamento do titular (LGPD art. 18, VI). */
+    void deleteAllByUsuario(Usuario usuario);
 }

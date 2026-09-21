@@ -14,4 +14,7 @@ public interface IncomeRepository extends JpaRepository<Income, Long> {
 
     Optional<Income> findByUsuarioAndTipo(Usuario usuario, TipoRenda tipo);
 
+    /** Exclusao de conta: apaga as rendas do titular (LGPD art. 18, VI). */
+    void deleteAllByUsuario(Usuario usuario);
+
 }
